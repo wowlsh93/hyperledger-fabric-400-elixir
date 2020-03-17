@@ -7,9 +7,33 @@ defmodule Benchmark do
   end
 end
 
-defmodule ForLoop do
+defmodule Fabric do
+  def start() do
+    spawn(__MODULE__, :endorsor, [])
+  end
 
-  def for_loop(count) when is_integer(count) do
+  def add_trans(key,value) do
+    ref = make_ref()
+    send(key,value,{:proposal, self(), ref})
+    receive do
+      {:ok, ^ref, rwset} -> IO.puts(rwset)
+    end
+  end
+
+  def endorsor() do
+    receive do
+      {:proposal, sender, ref} ->
+        sned(sender, {:ok, ref , "rwset"})
+        endorsor()
+    end
+  end
+
+end
+
+defmodule Middleware do
+
+  def start(count) when is_integer(count) do
+    Fabric.start("org1")
     acc = 0
     IO.puts("start-1")
     start_time = System.system_time(:second)
@@ -21,7 +45,7 @@ defmodule ForLoop do
   end
 
   def start_transaction(key, value) do
-
+    Fabric.add_trans(key,value)
   end
 
   defp loop(count, acc) do
@@ -33,4 +57,4 @@ defmodule ForLoop do
 
 end
 
-ForLoop.for_loop(32000000)
+Middleware.start(32000000)
